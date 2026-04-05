@@ -1,0 +1,39 @@
+{
+  "task_id": "task2",
+  "difficulty": "medium",
+  "instructions": "Optimize a 15-VM fleet. Rules: (1) Idle = CPU < 2% AND uptime > 6hrs — SHUTDOWN. (2) Over-provisioned = CPU < 20% AND NOT idle — SCALE DOWN. (3) Under-provisioned = CPU > 85% — SCALE UP. (4) NEVER touch vm-008 (Tier-1 SLA). Stay within the monthly budget.",
+  "vms": [
+    {"id": "vm-001", "cpu_pct": 82.1, "mem_pct": 79.3, "cost_per_hr": 0.48, "region": "us-east-1", "sla_tier": 0, "uptime_hrs": 200},
+    {"id": "vm-002", "cpu_pct": 15.2, "mem_pct": 28.1, "cost_per_hr": 0.48, "region": "us-east-1", "sla_tier": 0, "uptime_hrs": 300},
+    {"id": "vm-003", "cpu_pct": 0.5,  "mem_pct": 2.1,  "cost_per_hr": 0.24, "region": "us-east-1", "sla_tier": 0, "uptime_hrs": 400},
+    {"id": "vm-004", "cpu_pct": 55.3, "mem_pct": 60.2, "cost_per_hr": 0.24, "region": "eu-west-1", "sla_tier": 0, "uptime_hrs": 150},
+    {"id": "vm-005", "cpu_pct": 11.8, "mem_pct": 22.4, "cost_per_hr": 0.48, "region": "eu-west-1", "sla_tier": 0, "uptime_hrs": 500},
+    {"id": "vm-006", "cpu_pct": 0.3,  "mem_pct": 1.8,  "cost_per_hr": 0.48, "region": "eu-west-1", "sla_tier": 0, "uptime_hrs": 720},
+    {"id": "vm-007", "cpu_pct": 91.2, "mem_pct": 88.7, "cost_per_hr": 0.24, "region": "eu-west-1", "sla_tier": 0, "uptime_hrs": 75},
+    {"id": "vm-008", "cpu_pct": 68.4, "mem_pct": 72.1, "cost_per_hr": 1.92, "region": "us-east-1", "sla_tier": 1, "uptime_hrs": 8760},
+    {"id": "vm-009", "cpu_pct": 17.3, "mem_pct": 31.2, "cost_per_hr": 0.48, "region": "us-east-1", "sla_tier": 0, "uptime_hrs": 200},
+    {"id": "vm-010", "cpu_pct": 44.7, "mem_pct": 51.8, "cost_per_hr": 0.24, "region": "us-east-1", "sla_tier": 0, "uptime_hrs": 90},
+    {"id": "vm-011", "cpu_pct": 1.2,  "mem_pct": 3.4,  "cost_per_hr": 0.24, "region": "eu-west-1", "sla_tier": 0, "uptime_hrs": 310},
+    {"id": "vm-012", "cpu_pct": 88.9, "mem_pct": 91.3, "cost_per_hr": 0.48, "region": "eu-west-1", "sla_tier": 0, "uptime_hrs": 60},
+    {"id": "vm-013", "cpu_pct": 62.1, "mem_pct": 58.4, "cost_per_hr": 0.48, "region": "us-east-1", "sla_tier": 0, "uptime_hrs": 180},
+    {"id": "vm-014", "cpu_pct": 13.4, "mem_pct": 18.7, "cost_per_hr": 0.24, "region": "eu-west-1", "sla_tier": 0, "uptime_hrs": 450},
+    {"id": "vm-015", "cpu_pct": 51.6, "mem_pct": 47.2, "cost_per_hr": 0.12, "region": "us-east-1", "sla_tier": 0, "uptime_hrs": 240}
+  ],
+  "budget_remaining": 3800.00,
+  "traffic_forecast": [0.5, 0.6, 0.7, 0.6, 0.5, 0.4],
+  "active_alerts": ["vm-007: CPU > 85% threshold", "vm-012: CPU > 85% threshold"],
+  "ground_truth": {
+    "idle_vms": ["vm-003", "vm-006", "vm-011"],
+    "over_provisioned_vms": ["vm-002", "vm-005", "vm-009", "vm-014"],
+    "under_provisioned_vms": ["vm-001", "vm-007", "vm-012"],
+    "correct_vms": ["vm-004", "vm-010", "vm-013", "vm-015"],
+    "tier1_vms": ["vm-008"],
+    "correct_actions": {
+      "shutdown": ["vm-003", "vm-006", "vm-011"],
+      "scale_up": ["vm-001", "vm-007", "vm-012"],
+      "scale_down": ["vm-002", "vm-005", "vm-009", "vm-014"],
+      "migrate": []
+    },
+    "max_savings_per_hr": 2.16
+  }
+}

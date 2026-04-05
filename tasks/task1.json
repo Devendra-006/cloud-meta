@@ -1,0 +1,22 @@
+{
+  "task_id": "task1",
+  "difficulty": "easy",
+  "instructions": "You manage a fleet of 5 virtual machines. Analyze the VM metrics and shut down any idle machines to save cost. A VM is idle if CPU usage is below 2% and it has been running for more than 6 hours. Do NOT touch Tier-1 SLA VMs under any circumstances.",
+  "vms": [
+    {"id": "vm-001", "cpu_pct": 72.4, "mem_pct": 68.1, "cost_per_hr": 0.48, "region": "us-east-1", "sla_tier": 1, "uptime_hrs": 312},
+    {"id": "vm-002", "cpu_pct": 45.2, "mem_pct": 52.3, "cost_per_hr": 0.24, "region": "us-east-1", "sla_tier": 0, "uptime_hrs": 88},
+    {"id": "vm-003", "cpu_pct": 0.8,  "mem_pct": 3.1,  "cost_per_hr": 0.24, "region": "us-east-1", "sla_tier": 0, "uptime_hrs": 187},
+    {"id": "vm-004", "cpu_pct": 61.7, "mem_pct": 71.4, "cost_per_hr": 0.48, "region": "us-east-1", "sla_tier": 0, "uptime_hrs": 44},
+    {"id": "vm-005", "cpu_pct": 1.1,  "mem_pct": 2.4,  "cost_per_hr": 0.12, "region": "us-east-1", "sla_tier": 0, "uptime_hrs": 523}
+  ],
+  "budget_remaining": 5000.00,
+  "traffic_forecast": [0.4, 0.4, 0.4, 0.4, 0.4, 0.4],
+  "active_alerts": [],
+  "ground_truth": {
+    "idle_vms": ["vm-003", "vm-005"],
+    "active_vms": ["vm-001", "vm-002", "vm-004"],
+    "tier1_vms": ["vm-001"],
+    "max_savings_per_hr": 0.36,
+    "correct_actions": {"shutdown": ["vm-003", "vm-005"], "scale_up": [], "scale_down": [], "migrate": []}
+  }
+}

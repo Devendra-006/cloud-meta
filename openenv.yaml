@@ -1,0 +1,43 @@
+name: cloudcost-env
+version: "1.0.0"
+description: >
+  An OpenEnv environment where an AI agent acts as a Cloud Infrastructure
+  Optimizer. The agent manages a fleet of virtual machines — shutting down
+  idle instances, right-sizing over/under-provisioned VMs, and proactively
+  scaling ahead of traffic spikes — all within SLA and budget constraints.
+author: devendra
+license: MIT
+tasks:
+  - id: task1
+    difficulty: easy
+    description: Identify and shut down 2 idle VMs in a 5-VM fleet
+  - id: task2
+    difficulty: medium
+    description: Full rebalancing of 15 VMs with SLA tier constraints
+  - id: task3
+    difficulty: hard
+    description: 30-VM fleet with traffic spike, VM failures, and migration
+observation_space:
+  type: object
+  description: VM fleet telemetry, budget state, and traffic forecast
+  fields:
+    - done: bool
+    - reward: float
+    - task_id: str
+    - vms: list
+    - budget_remaining: float
+    - traffic_forecast: list
+    - active_alerts: list
+    - instructions: str
+    - feedback: str
+action_space:
+  type: object
+  description: Infrastructure actions taken by the agent
+  fields:
+    - shutdown: list
+    - scale_up: list
+    - scale_down: list
+    - migrate: list
+    - reasoning: str
+reward_range: [0.0, 1.0]
+max_steps: 5

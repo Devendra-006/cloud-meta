@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+[project]
+name = "cloudcost-env"
+version = "1.0.0"
+description = "OpenEnv environment for cloud cost optimization agents"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "openenv-core[core]>=0.2.1",
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "pydantic>=2.0.0",
+    "openai>=1.30.0",
+    "python-dotenv>=1.0.0",
+    "websockets>=12.0",
+    "httpx>=0.27.0",
+    "PyYAML>=6.0",
+]
