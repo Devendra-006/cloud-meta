@@ -333,15 +333,60 @@ function DashboardTab({ observation, stepHistory, rewardResult, onReset }) {
             <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400" />
               Alerts
+              <span className="ml-auto text-xs text-slate-500">{observation?.active_alerts?.length || 0} issues</span>
             </h3>
             {(observation?.active_alerts || []).length > 0 ? (
-              <div className="space-y-2">
-                {observation.active_alerts.map((alert, idx) => (
-                  <div key={idx} className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg p-2">
-                    <AlertTriangle className="w-4 h-4 text-red-400" />
-                    <span className="text-sm text-red-300">{alert}</span>
-                  </div>
-                ))}
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {observation.active_alerts.map((alert, idx) => {
+                  const severityColors = {
+                    critical: 'bg-red-500/20 border-red-500/50',
+                    high: 'bg-red-500/15 border-red-500/40',
+                    medium: 'bg-yellow-500/15 border-yellow-500/40',
+                    low: 'bg-blue-500/10 border-blue-500/30',
+                    protected: 'bg-purple-500/20 border-purple-500/50',
+                  }
+                  const severityText = {
+                    critical: 'text-red-400',
+                    high: 'text-red-400',
+                    medium: 'text-yellow-400',
+                    low: 'text-blue-400',
+                    protected: 'text-purple-400',
+                  }
+                  const severityBg = {
+                    critical: 'text-red-400',
+                    high: 'text-red-400',
+                    medium: 'text-yellow-400',
+                    low: 'text-blue-400',
+                    protected: 'text-purple-400',
+                  }
+                  
+                  return (
+                    <div key={idx} className={`rounded-lg p-3 border ${severityColors[alert.severity] || severityColors.low}`}>
+                      <div className="flex items-start justify-between mb-1">
+                        <span className={`text-sm font-medium ${severityText[alert.severity] || severityText.low}`}>
+                          {alert.title || alert.vm_id}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded ${severityBg[alert.severity] || severityBg.low} bg-opacity-20`}>
+                          {alert.severity?.toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 mb-2">{alert.message}</p>
+                      {alert.potential_savings > 0 && (
+                        <div className="flex items-center gap-1 text-xs">
+                          <DollarSign className="w-3 h-3 text-green-400" />
+                          <span className="text-green-400">Save ${alert.potential_savings.toFixed(2)}/hr</span>
+                        </div>
+                      )}
+                      {alert.action && alert.action !== 'none' && (
+                        <div className="mt-2 flex gap-2">
+                          <span className="text-xs px-2 py-1 bg-slate-700/50 rounded text-slate-300">
+                            Action: {alert.action}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-lg p-3">

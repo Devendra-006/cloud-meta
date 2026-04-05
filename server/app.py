@@ -40,6 +40,9 @@ def serialize_observation(obs) -> dict:
         "max_steps": obs.max_steps,
         "done": obs.done,
         "reward": obs.reward,
+        "total_hourly_cost": getattr(obs, 'total_hourly_cost', 0),
+        "idle_vm_count": getattr(obs, 'idle_vm_count', 0),
+        "potential_savings": getattr(obs, 'potential_savings', 0),
     }
 
 @app.post("/reset")

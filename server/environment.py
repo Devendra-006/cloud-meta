@@ -59,7 +59,7 @@ class CloudCostEnvironment(Environment):
         max_steps = MAX_STEPS.get(self._task_id, 1)
         done = result.total_score >= 0.95 or self._state.step_count >= max_steps
         self._done = done
-        feedback = self._build_feedback(result)
+        feedback = self._build_feedback(action, result)
         obs = self._make_obs(feedback=feedback)
         obs.done = done
         obs.reward = result.total_score
@@ -70,31 +70,185 @@ class CloudCostEnvironment(Environment):
     def state(self) -> CloudCostState:
         return self._state
 
+    def _generate_alerts(self) -> list:
+        """Generate alerts based on VM state."""
+        alerts = []
+        vms = self._task_data.get('vms', [])
+        gt = self._state.ground_truth
+        
+        for vm in vms:
+            vm_id = vm['id']
+            cpu = vm.get('cpu_pct', 0)
+            mem = vm.get('mem_pct', 0)
+            sla_tier = vm.get('sla_tier', 0)
+            uptime = vm.get('uptime_hrs', 0)
+            cost = vm.get('cost_per_hr', 0)
+            
+            # Idle VM alert
+            if cpu < 2 and uptime > 6:
+                alerts.append({
+                    "type": "warning",
+                    "severity": "low",
+                    "vm_id": vm_id,
+                    "title": f"Idle VM Detected: {vm_id}",
+                    "message": f"CPU at {cpu}%, uptime {uptime}h. Potential cost savings: ${cost}/hr",
+                    "action": "shutdown",
+                    "potential_savings": cost
+                })
+            
+            # Critical CPU alert
+            if cpu > 85:
+                alerts.append({
+                    "type": "danger",
+                    "severity": "high",
+                    "vm_id": vm_id,
+                    "title": f"Critical CPU: {vm_id}",
+                    "message": f"CPU usage at {cpu}%! SLA violation risk. Immediate action required.",
+                    "action": "scale_up",
+                    "risk": "sla_violation"
+                })
+            
+            # Over-provisioned alert
+            if cpu < 30 and mem < 40 and uptime > 24:
+                alerts.append({
+                    "type": "info",
+                    "severity": "medium",
+                    "vm_id": vm_id,
+                    "title": f"Over-provisioned: {vm_id}",
+                    "message": f"Low utilization (CPU {cpu}%, Mem {mem}%). Consider scaling down.",
+                    "action": "scale_down",
+                    "potential_savings": cost * 0.5
+                })
+            
+            # Tier-1 SLA protected alert
+            if sla_tier == 1:
+                alerts.append({
+                    "type": "protected",
+                    "severity": "critical",
+                    "vm_id": vm_id,
+                    "title": f"Tier-1 SLA Protected: {vm_id}",
+                    "message": "DO NOT SHUTDOWN. This VM has SLA compliance requirements.",
+                    "action": "none",
+                    "risk": "sla_violation"
+                })
+        
+        return alerts
+
     def _make_obs(self, feedback: str) -> CloudCostObservation:
         td = self._task_data
         max_steps = MAX_STEPS.get(self._task_id, 1)
-        return CloudCostObservation.model_construct(
+        alerts = self._generate_alerts()
+        
+        # Add summary stats to observations
+        vms = td.get('vms', [])
+        total_cost = sum(vm.get('cost_per_hr', 0) for vm in vms)
+        idle_count = len([vm for vm in vms if vm.get('cpu_pct', 100) < 2 and vm.get('uptime_hrs', 0) > 6])
+        potential_savings = sum(alert.get('potential_savings', 0) for alert in alerts if alert.get('action') == 'shutdown')
+        
+        obs = CloudCostObservation.model_construct(
             done=self._done,
             reward=self._last_reward if self._state.step_count > 0 else None,
             task_id=self._task_id,
             difficulty=td.get('difficulty', ''),
-            vms=td.get('vms', []),
+            vms=vms,
             budget_remaining=td.get('budget_remaining', 0.0),
             traffic_forecast=td.get('traffic_forecast', []),
-            active_alerts=td.get('active_alerts', []),
+            active_alerts=alerts,
             time_step=self._state.step_count,
             instructions=td.get('instructions', ''),
             feedback=feedback,
             step_number=self._state.step_count,
             max_steps=max_steps,
         )
+        
+        # Add extra fields for UI
+        obs.total_hourly_cost = total_cost
+        obs.idle_vm_count = idle_count
+        obs.potential_savings = potential_savings
+        
+        return obs
 
-    def _build_feedback(self, result) -> str:
-        lines = [
-            f'Score: {result.total_score:.3f}',
-            f'  Cost Savings:     {result.cost_savings:.3f}  (weight: 0.45)',
-            f'  SLA Compliance:   {result.sla_compliance:.3f}  (weight: 0.35)',
-            f'  Action Precision: {result.action_precision:.3f}  (weight: 0.15)',
-            f'  Reasoning:        {result.reasoning:.3f}  (weight: 0.05)',
-        ]
+    def _build_feedback(self, action, result) -> str:
+        """Build detailed feedback based on action taken."""
+        lines = []
+        lines.append("=" * 50)
+        lines.append(f"STEP {self._state.step_count} RESULTS")
+        lines.append("=" * 50)
+        lines.append("")
+        
+        # Overall score
+        if result.total_score >= 0.9:
+            score_emoji = "🎉"
+            score_text = "EXCELLENT!"
+        elif result.total_score >= 0.7:
+            score_emoji = "✅"
+            score_text = "GOOD"
+        elif result.total_score >= 0.5:
+            score_emoji = "⚠️"
+            score_text = "NEEDS IMPROVEMENT"
+        else:
+            score_emoji = "❌"
+            score_text = "POOR"
+        
+        lines.append(f"{score_emoji} Total Score: {result.total_score:.3f} ({score_text})")
+        lines.append("")
+        
+        # Component breakdown
+        lines.append("SCORE BREAKDOWN:")
+        lines.append("-" * 30)
+        
+        cs_score = result.cost_savings * 0.45
+        sla_score = result.sla_compliance * 0.35
+        ap_score = result.action_precision * 0.15
+        rs_score = result.reasoning
+        
+        lines.append(f"  💰 Cost Savings:     {result.cost_savings:.3f} x 0.45 = {cs_score:.3f}")
+        lines.append(f"  🛡️  SLA Compliance:   {result.sla_compliance:.3f} x 0.35 = {sla_score:.3f}")
+        lines.append(f"  🎯 Action Precision: {result.action_precision:.3f} x 0.15 = {ap_score:.3f}")
+        lines.append(f"  📝 Reasoning:        {result.reasoning:.3f} x 0.05 = {rs_score:.3f}")
+        lines.append("")
+        
+        # Action taken
+        lines.append("ACTIONS TAKEN:")
+        lines.append("-" * 30)
+        if action.shutdown:
+            lines.append(f"  🔴 Shutdown: {', '.join(action.shutdown)}")
+        if action.scale_up:
+            lines.append(f"  🟢 Scale Up: {', '.join(action.scale_up)}")
+        if action.scale_down:
+            lines.append(f"  🟡 Scale Down: {', '.join(action.scale_down)}")
+        if action.migrate:
+            lines.append(f"  🔵 Migrate: {', '.join([f'{v}->{r}' for v,r in action.migrate])}")
+        if not any([action.shutdown, action.scale_up, action.scale_down, action.migrate]):
+            lines.append("  No actions taken")
+        lines.append("")
+        
+        # Recommendations
+        lines.append("RECOMMENDATIONS:")
+        lines.append("-" * 30)
+        
+        gt = self._state.ground_truth
+        correct = gt.get('correct_actions', {})
+        
+        # What was correct
+        for vm_id in action.shutdown:
+            if vm_id in correct.get('shutdown', []):
+                lines.append(f"  ✅ {vm_id}: Correct shutdown (idle VM)")
+        
+        for vm_id in action.shutdown:
+            if vm_id in gt.get('tier1_vms', []):
+                lines.append(f"  ❌ {vm_id}: VIOLATION - Tier-1 SLA protected!")
+        
+        for vm_id in action.shutdown:
+            if vm_id not in correct.get('shutdown', []) and vm_id not in gt.get('tier1_vms', []):
+                lines.append(f"  ⚠️  {vm_id}: Warning - Active VM being shutdown!")
+        
+        # What should have been done
+        if self._state.step_count < MAX_STEPS.get(self._task_id, 1):
+            still_idle = [v for v in gt.get('idle_vms', []) if v not in action.shutdown]
+            if still_idle:
+                lines.append(f"  💡 Still idle: {', '.join(still_idle)}")
+        
+        lines.append("")
+        
         return '\n'.join(lines)
