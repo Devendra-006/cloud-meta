@@ -467,6 +467,40 @@ openenv push --repo-id YOUR-USERNAME/cloud-meta
 
 ## Change Log
 
+### v1.1.0 - April 6, 2026
+
+#### Security & Architecture Improvements
+- ✅ **CORS Restricted** - Origins now configurable via `ALLOWED_ORIGINS` env variable
+- ✅ **Multi-Session Support** - Session map replaces global shared environment
+- ✅ **Ground Truth Protected** - Never exposed in API responses
+- ✅ **VM ID Validation** - All VM IDs validated against current task fleet
+- ✅ **404 on Missing Session** - Clear error instead of silent fallback
+
+#### Scoring Improvements
+- ✅ **Budget Enforcement** - Reward capped at 0.40 if budget exceeded
+- ✅ **Normalized Reasoning** - Properly weighted with consistent scale
+
+#### Developer Experience
+- ✅ **Structured Logging** - Server logs episode events
+- ✅ **API Docstrings** - FastAPI auto-generates endpoint docs
+- ✅ **.env.example** - Environment variable documentation
+- ✅ **Pytest Config** - Full test suite with 37 tests
+- ✅ **Edge Case Tests** - Duplicates, empty actions, zero savings
+
+#### Files Modified
+
+| File | Changes |
+|------|---------|
+| `server/app.py` | Multi-session, validation, logging, CORS, docstrings |
+| `graders/grader.py` | Budget enforcement, normalized reasoning, edge cases |
+| `pyproject.toml` | Added pytest, coverage config |
+| `tests/test_grader.py` | 22 comprehensive grader tests |
+| `tests/test_environment.py` | 15 environment tests |
+| `.env.example` | Environment variable documentation |
+| `workflow.md` | Updated with security, architecture docs |
+
+---
+
 ### v1.0.0 - April 5, 2026
 
 #### Features Added

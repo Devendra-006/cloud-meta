@@ -33,6 +33,8 @@ Thumbs.db
 # Environment specific
 *.local
 
-# Test files
+# Test files (but not in tests/ directory)
 test_*.py
 *_test.py
+!tests/test_*.py
+!tests/*_test.py
