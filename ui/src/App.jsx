@@ -663,6 +663,7 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [selectedVMs, setSelectedVMs] = useState({ shutdown: [], scale_up: [], scale_down: [] })
   const [reasoning, setReasoning] = useState('')
+  const [episodeId, setEpisodeId] = useState(null)
 
   const handleReset = useCallback(async () => {
     setLoading(true)
@@ -676,6 +677,7 @@ export default function App() {
         const data = await response.json()
         const obs = data.observation || data
         setObservation(obs)
+        setEpisodeId(data.episode_id || null)
         setRewardResult(null)
         setStepHistory([])
         setSelectedVMs({ shutdown: [], scale_up: [], scale_down: [] })
@@ -690,36 +692,63 @@ export default function App() {
   const handleAction = async (action) => {
     setLoading(true)
     try {
+      const headers = { 'Content-Type': 'application/json' }
+      if (episodeId) {
+        headers['X-Episode-ID'] = episodeId
+      }
+      
       const response = await fetch(`${API_BASE}/step`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: JSON.stringify({ action }),
       })
-      if (response.ok) {
-        const data = await response.json()
-        const obs = data.observation || data
-        const reward = data.reward ?? obs.reward
-        
-        setObservation(obs)
-        
-        const result = {
-          total_score: reward || 0,
-          cost_savings: 0.35,
-          sla_compliance: 0.35,
-          action_precision: 0.15,
-          reasoning: 0.05,
-        }
-        setRewardResult(result)
-        
-        setStepHistory(prev => [...prev, {
-          step: prev.length + 1,
-          reward: reward,
-          reasoning: action.reasoning,
-        }])
-        
-        setSelectedVMs({ shutdown: [], scale_up: [], scale_down: [] })
-        setReasoning('')
+      
+      if (!response.ok) {
+        const error = await response.json()
+        console.error('Step error:', error)
+        setLoading(false)
+        return
       }
+      
+      const data = await response.json()
+      
+      // Extract observation - it might be nested or direct
+      let obs = data.observation
+      if (!obs) {
+        obs = data  // Fallback to entire response
+      }
+      
+      // Ensure step_number and max_steps are numbers
+      const stepNumber = Number(obs.step_number) || 0
+      const maxSteps = Number(obs.max_steps) || 1
+      
+      // Create updated observation with proper values
+      const updatedObs = {
+        ...obs,
+        step_number: stepNumber,
+        max_steps: maxSteps,
+        reward: data.reward ?? obs.reward,
+      }
+      
+      setObservation(updatedObs)
+      
+      const result = {
+        total_score: data.reward ?? obs.reward ?? 0,
+        cost_savings: 0.35,
+        sla_compliance: 0.35,
+        action_precision: 0.15,
+        reasoning: 0.05,
+      }
+      setRewardResult(result)
+      
+      setStepHistory(prev => [...prev, {
+        step: stepNumber,
+        reward: data.reward ?? obs.reward,
+        reasoning: action.reasoning,
+      }])
+      
+      setSelectedVMs({ shutdown: [], scale_up: [], scale_down: [] })
+      setReasoning('')
     } catch (error) {
       console.error('Action error:', error)
     }
